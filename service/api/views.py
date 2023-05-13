@@ -9,7 +9,8 @@ from pydantic import BaseModel
 from service.api.exceptions import (
     ModelNotFoundError,
     NotAuthorizedError,
-    UserNotFoundError
+    UserNotFoundError,
+    ItemNotFoundError
 )
 from service.log import app_logger
 from service.models import get_models
