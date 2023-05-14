@@ -17,7 +17,7 @@ def test_health(
     assert response.status_code == HTTPStatus.OK
 
 
-def test_get_explain_warm_users(client: TestClient) -> None:
+def test_get_explain_cold_users(client: TestClient) -> None:
     user_id = 151
     item_id = 65
     path = GET_EXPLAIN_PATH.format(model_name="als_model",
@@ -32,7 +32,7 @@ def test_get_explain_warm_users(client: TestClient) -> None:
                                            "самых просматриваемых фильмов"
 
 
-def test_get_explain_cold_users(client: TestClient) -> None:
+def test_get_explain_warm_users(client: TestClient) -> None:
     user_id = 387
     item_id = 15297
     path = GET_EXPLAIN_PATH.format(model_name="als_model",
