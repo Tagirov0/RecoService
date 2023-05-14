@@ -26,12 +26,14 @@ class ServiceConfig(Config):
     k_recs: int = 10
     api_key: str
     zip_models_path: str = 'models/models.zip'
+    als_model: str = 'als_model.pickle'
+    dataset: str = 'dataset.pickle'
     knn_model: str = 'knn_bm25_item.dill'
     pop_model: str = 'pop_model_7.dill'
     users_list: str = 'users_list.pickle'
     emb_maps: str = 'emb_maps.pickle'
     knows_items: str = 'known_items.pickle'
-
+    explain_data: str = 'models/explain_data.pickle'
     log_config: LogConfig
 
 

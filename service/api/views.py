@@ -1,3 +1,5 @@
+import traceback
+import pickle
 from typing import List
 
 from fastapi import APIRouter, Depends, FastAPI, Request, Security
@@ -7,10 +9,11 @@ from pydantic import BaseModel
 from service.api.exceptions import (
     ModelNotFoundError,
     NotAuthorizedError,
-    UserNotFoundError,
+    UserNotFoundError
 )
 from service.log import app_logger
 from service.models import get_models
+from service.settings import get_config
 
 
 class RecoResponse(BaseModel):
@@ -18,10 +21,14 @@ class RecoResponse(BaseModel):
     items: List[int]
 
 
+class ExplainResponse(BaseModel):
+    p: int
+    explanation: str
+
+
 MODELS = get_models()
 router = APIRouter()
-
-
+config = get_config()
 token_bearer = HTTPBearer(auto_error=False)
 
 
@@ -43,6 +50,37 @@ def check_api_key(expected: str, actual: str) -> None:
 
 
 @router.get(
+    path="/explain/{model_name}/{user_id}/{item_id}",
+    tags=["Explanations"],
+    response_model=ExplainResponse,
+    responses={404: {"description": "Model, user or item not found"},
+               401: {"description": "Not authorized"}},
+)
+async def explain(request: Request, model_name: str, user_id: int,
+                  item_id: int) -> ExplainResponse:
+    if model_name != 'als_model':
+        raise ModelNotFoundError(error_message=f"Model {model_name} not found")
+    else:
+        model = MODELS[model_name]
+    explain_data = pickle.load(open(config.explain_data, 'rb'))
+    popular, item_titles = explain_data.values()
+
+    if user_id > 10 ** 9:
+        raise UserNotFoundError(error_message=f"User {user_id} not found")
+    elif user_id in model.users and model.item_id_idx.get(item_id):
+        score, contributor = model.get_explain_reco(user_id, item_id)
+        p = round(score * 100)
+        explanation = f'Рекомендуем тем, кому нравится ' \
+                      f'«{item_titles[contributor]}»'
+    else:
+        p = round((1 - (popular.index(item_id) + 1) / len(popular)) * 99)
+        explanation = f'«{item_titles[item_id]}» входит в топ {100 - p}% ' \
+                      f'самых просматриваемых фильмов'
+
+    return ExplainResponse(p=p, explanation=explanation)
+
+
+@router.get(
     path="/health",
     tags=["Health"],
 )
@@ -61,15 +99,12 @@ async def health() -> str:
 async def get_reco(
     request: Request,
     model_name: str,
-    user_id: int,
-    api_key: str = Depends(get_api_key)
+    user_id: int
 ) -> RecoResponse:
     ''' Get recommendations for a user '''
-    app_logger.info(f"Request for model: {model_name}, user_id: {user_id}")
+    app_logger.info(f"API_KEY: {request.app.state.api_key}")
 
-    check_api_key(request.app.state.api_key, api_key)
-
-    if user_id > 10**9:
+    if user_id > 10 ** 9:
         raise UserNotFoundError(error_message=f"User {user_id} not found")
 
     try:
