@@ -67,8 +67,6 @@ async def explain(request: Request, model_name: str, user_id: int,
 
     if user_id > 10 ** 9:
         raise UserNotFoundError(error_message=f"User {user_id} not found")
-    elif item_id not in set(item_titles.keys()):
-        raise ItemNotFoundError(error_message=f"Item {item_id} not found")
     elif user_id in model.users and model.item_id_idx.get(item_id):
         score, contributor = model.get_explain_reco(user_id, item_id)
         p = round(score * 100)
